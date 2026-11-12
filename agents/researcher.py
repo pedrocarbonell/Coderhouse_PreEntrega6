@@ -24,6 +24,7 @@ def search_corpus(query: str) -> str:
 
 
 def get_llm() -> ChatOpenAI:
+    """Crea el ChatOpenAI del agente de investigación."""
     return ChatOpenAI(model="gpt-4o-mini", temperature=0)
 
 
@@ -39,6 +40,7 @@ researcher = create_react_agent(
 
 
 def researcher_node(state: OrchestratorState):
+    """Invoca al investigador y guarda solo el hallazgo final en el estado."""
     result = researcher.invoke({"messages": state["messages"][-2:]})
     last = result["messages"][-1]
     return {"messages": [HumanMessage(content=last.content, name="researcher")]}

@@ -9,6 +9,7 @@ QUERY = (
 
 
 def main() -> None:
+    """Ejecuta la consulta demo y imprime el rastro de delegación nodo a nodo."""
     initial: OrchestratorState = {
         "messages": [HumanMessage(content=QUERY)],
         "steps": 0,

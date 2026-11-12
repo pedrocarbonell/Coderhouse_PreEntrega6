@@ -36,25 +36,18 @@ class Route(TypedDict):
 
 
 def get_llm() -> ChatOpenAI:
+    """Crea el ChatOpenAI del supervisor con la API key del entorno."""
     return ChatOpenAI(
-        model="gpt-4o-mini", 
+        model="gpt-4o-mini",
         temperature=0,
-        api_key=OPENAI_API_KEY.get_secret_value)
+        api_key=OPENAI_API_KEY.get_secret_value,
+    )
 
 
 router = get_llm().with_structured_output(Route)
 
-
-def _speaker_names(state: OrchestratorState) -> set[str]:
-    names: set[str] = set()
-    for m in state.get("messages", []):
-        name = getattr(m, "name", None)
-        if isinstance(name, str):
-            names.add(name)
-    return names
-
-
 def supervisor_node(state: OrchestratorState):
+    """Decide el siguiente especialista o FINISH según la rúbrica y el tope de pasos."""
     steps = state.get("steps", 0) + 1
     if steps >= MAX_STEPS:
         return {"next": "FINISH", "steps": steps}
@@ -62,15 +55,7 @@ def supervisor_node(state: OrchestratorState):
     decision = router.invoke(
         [SystemMessage(content=SYSTEM_PROMPT), *state["messages"]]
     )
-    nxt = decision["next"]
-    names = _speaker_names(state)
-    # Sufficiency gate: no FINISH until both specialists have spoken.
-    if nxt == "FINISH":
-        if "researcher" not in names:
-            nxt = "researcher"
-        elif "analyst" not in names:
-            nxt = "analyst"
-    return {"next": nxt, "steps": steps}
+    return {"next": decision["next"], "steps": steps}
 
 
 builder = StateGraph(OrchestratorState)
@@ -80,9 +65,15 @@ builder.add_node("researcher", researcher_node)
 builder.add_node("analyst", analyst_node)
 builder.add_edge("researcher", "supervisor")
 builder.add_edge("analyst", "supervisor")
+
+def route_next(state: OrchestratorState) -> Literal["researcher", "analyst", "FINISH"]:
+    """Lee state['next'] para las aristas condicionales del supervisor."""
+    return state["next"]
+
+
 builder.add_conditional_edges(
     "supervisor",
-    lambda state: state["next"],
+    route_next,
     {
         "researcher": "researcher",
         "analyst": "analyst",

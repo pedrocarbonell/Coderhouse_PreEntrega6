@@ -11,13 +11,14 @@ load_dotenv()
 
 @tool
 def percent_change(previous: float, current: float) -> str:
-    """Calcula el cambio porcentual: ((current - previous) / previous) * 100."""
+    """Calcula el cambio porcentual"""
     if previous == 0:
         return "error: previous no puede ser 0"
     return str(((current - previous) / previous) * 100)
 
 
 def get_llm() -> ChatOpenAI:
+    """Crea el ChatOpenAI del agente de análisis."""
     return ChatOpenAI(model="gpt-4o-mini", temperature=0)
 
 
@@ -32,6 +33,7 @@ analyst = create_react_agent(
 
 
 def analyst_node(state: OrchestratorState):
+    """Invoca al analista y guarda el resultado final en el estado."""
     result = analyst.invoke({"messages": state["messages"][-2:]})
     last = result["messages"][-1]
     return {"messages": [HumanMessage(content=last.content, name="analyst")]}
