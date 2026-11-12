@@ -1,0 +1,5 @@
+/ejercicios/
+/.venv
+/.env
+
+*.json
